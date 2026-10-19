@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Computer;
 use App\Models\Apprentice;
+use App\Models\Computer;
 use App\Models\Offer;
 use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminSenaController extends Controller
 {
@@ -31,9 +32,10 @@ class AdminSenaController extends Controller
 
     public function computadores()
     {
-        $computers = Computer::orderBy('codigo')->get();
+        $computers = Computer::with('apprentice')->orderBy('codigo')->get();
+        $apprentices = Apprentice::orderBy('nombre')->get();
 
-        return view('computadores', compact('computers'));
+        return view('computadores', compact('computers', 'apprentices'));
     }
 
     public function guardarComputador(Request $request)
@@ -45,11 +47,36 @@ class AdminSenaController extends Controller
             'serial' => ['required', 'string', 'max:255', 'unique:computers,serial'],
             'estado' => ['required', 'in:Operativo,En mantenimiento,Disponible,En revisión'],
             'sede' => ['required', 'in:Popayán,Santander de Quilichao,Puerto Tejada'],
+            'aprendiz_id' => ['nullable', 'exists:apprentices,id'],
         ]);
 
         Computer::create($data);
 
         return redirect()->route('computadores')->with('success', 'Computador registrado correctamente.');
+    }
+
+    public function actualizarComputador(Request $request, Computer $computer)
+    {
+        $data = $request->validate([
+            'codigo' => ['required', 'string', 'max:255', Rule::unique('computers', 'codigo')->ignore($computer->id)],
+            'marca' => ['required', 'string', 'max:255'],
+            'modelo' => ['required', 'string', 'max:255'],
+            'serial' => ['required', 'string', 'max:255', Rule::unique('computers', 'serial')->ignore($computer->id)],
+            'estado' => ['required', 'in:Operativo,En mantenimiento,Disponible,En revisión'],
+            'sede' => ['required', 'in:Popayán,Santander de Quilichao,Puerto Tejada'],
+            'aprendiz_id' => ['nullable', 'exists:apprentices,id'],
+        ]);
+
+        $computer->update($data);
+
+        return redirect()->route('computadores')->with('success', 'Computador actualizado correctamente.');
+    }
+
+    public function eliminarComputador(Computer $computer)
+    {
+        $computer->delete();
+
+        return redirect()->route('computadores')->with('success', 'Computador eliminado correctamente.');
     }
 
     public function aprendices()
@@ -63,6 +90,9 @@ class AdminSenaController extends Controller
     {
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
+            'apellido1' => ['required', 'string', 'max:100'],
+            'apellido2' => ['required', 'string', 'max:100'],
+            'cedula' => ['required', 'string', 'max:30', 'unique:apprentices,cedula'],
             'programa' => ['required', 'string', 'max:255'],
             'ficha' => ['required', 'string', 'max:50'],
             'centro' => ['required', 'in:Popayán,Santander de Quilichao,Puerto Tejada'],
@@ -72,6 +102,32 @@ class AdminSenaController extends Controller
         Apprentice::create($data);
 
         return redirect()->route('aprendices')->with('success', 'Aprendiz registrado correctamente.');
+    }
+
+    public function actualizarAprendiz(Request $request, Apprentice $apprentice)
+    {
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:255'],
+            'apellido1' => ['required', 'string', 'max:100'],
+            'apellido2' => ['required', 'string', 'max:100'],
+            'cedula' => ['required', 'string', 'max:30', Rule::unique('apprentices', 'cedula')->ignore($apprentice->id)],
+            'programa' => ['required', 'string', 'max:255'],
+            'ficha' => ['required', 'string', 'max:50'],
+            'centro' => ['required', 'in:Popayán,Santander de Quilichao,Puerto Tejada'],
+            'estado' => ['required', 'in:Activo,En prórroga,Formación,Finalizado'],
+        ]);
+
+        $apprentice->update($data);
+
+        return redirect()->route('aprendices')->with('success', 'Aprendiz actualizado correctamente.');
+    }
+
+    public function eliminarAprendiz(Apprentice $apprentice)
+    {
+        $apprentice->computers()->update(['aprendiz_id' => null]);
+        $apprentice->delete();
+
+        return redirect()->route('aprendices')->with('success', 'Aprendiz eliminado correctamente.');
     }
 
     public function ofertas()
@@ -95,6 +151,27 @@ class AdminSenaController extends Controller
         return redirect()->route('ofertas')->with('success', 'Oferta registrada correctamente.');
     }
 
+    public function actualizarOferta(Request $request, Offer $offer)
+    {
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:255'],
+            'modalidad' => ['required', 'in:Virtual,Presencial,Mixto,Dual,Híbrida'],
+            'duracion' => ['required', 'string', 'max:100'],
+            'centro' => ['required', 'in:Popayán,Santander de Quilichao,Puerto Tejada'],
+        ]);
+
+        $offer->update($data);
+
+        return redirect()->route('ofertas')->with('success', 'Oferta actualizada correctamente.');
+    }
+
+    public function eliminarOferta(Offer $offer)
+    {
+        $offer->delete();
+
+        return redirect()->route('ofertas')->with('success', 'Oferta eliminada correctamente.');
+    }
+
     public function roles()
     {
         $roles = Role::orderBy('nombre')->get();
@@ -102,18 +179,39 @@ class AdminSenaController extends Controller
         return view('roles', compact('roles'));
     }
 
+    public function guardarRol(Request $request)
+    {
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:255'],
+            'permisos' => ['required', 'string', 'max:255'],
+            'usuario' => ['required', 'string', 'max:255', 'unique:roles,usuario'],
+            'estado' => ['required', 'in:Activo,En revisión,Inactivo'],
+        ]);
+
+        Role::create($data);
+
+        return redirect()->route('roles')->with('success', 'Rol registrado correctamente.');
+    }
+
     public function actualizarRol(Request $request, Role $role)
     {
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'permisos' => ['required', 'string', 'max:255'],
-            'usuario' => ['required', 'string', 'max:255', 'unique:roles,usuario,'.$role->id],
+            'usuario' => ['required', 'string', 'max:255', Rule::unique('roles', 'usuario')->ignore($role->id)],
             'estado' => ['required', 'in:Activo,En revisión,Inactivo'],
         ]);
 
         $role->update($data);
 
         return redirect()->route('roles')->with('success', 'Rol actualizado correctamente.');
+    }
+
+    public function eliminarRol(Role $role)
+    {
+        $role->delete();
+
+        return redirect()->route('roles')->with('success', 'Rol eliminado correctamente.');
     }
 
     public function centros()

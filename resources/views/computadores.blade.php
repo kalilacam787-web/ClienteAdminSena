@@ -56,6 +56,20 @@
                         <option @selected(old('sede') === 'Puerto Tejada')>Puerto Tejada</option>
                     </select>
                 </label>
+                <label>
+                    Aprendiz responsable
+                    <select name="aprendiz_id">
+                        <option value="">Selecciona un aprendiz</option>
+                        @foreach ($apprentices as $apprentice)
+                            <option value="{{ $apprentice->id }}" @selected(old('aprendiz_id') == $apprentice->id)>
+                                {{ $apprentice->nombre }} {{ $apprentice->apellido1 }} {{ $apprentice->apellido2 }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @if ($apprentices->isEmpty())
+                        <a class="text-link" href="{{ route('aprendices') }}">Registrar primero un aprendiz</a>
+                    @endif
+                </label>
                 <button type="submit" class="primary-button">Guardar computador</button>
             </form>
         </section>
@@ -70,22 +84,57 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Código</th>
-                            <th>Marca</th>
-                            <th>Modelo</th>
-                            <th>Estado</th>
+                            <th>ID</th>
+                            <th>Datos y acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($computers as $computer)
                             <tr>
-                                <td>{{ $computer->codigo }}</td>
-                                <td>{{ $computer->marca }}</td>
-                                <td>{{ $computer->modelo }}</td>
-                                <td><span class="status-pill {{ $computer->estado === 'Operativo' ? 'ok' : ($computer->estado === 'Disponible' ? 'warn' : 'alert') }}">{{ $computer->estado }}</span></td>
+                                <td>{{ $computer->id }}</td>
+                                <td>
+                                    <form class="entry-form" method="POST" action="{{ route('computadores.actualizar', $computer) }}">
+                                        @csrf
+                                        @method('PUT')
+                                        <label>Código<input name="codigo" value="{{ $computer->codigo }}" required></label>
+                                        <label>Marca<input name="marca" value="{{ $computer->marca }}" required></label>
+                                        <label>Modelo<input name="modelo" value="{{ $computer->modelo }}" required></label>
+                                        <label>Serial<input name="serial" value="{{ $computer->serial }}" required></label>
+                                        <label>Estado
+                                            <select name="estado" required>
+                                                @foreach (['Operativo', 'En mantenimiento', 'Disponible', 'En revisión'] as $estado)
+                                                    <option value="{{ $estado }}" @selected($computer->estado === $estado)>{{ $estado }}</option>
+                                                @endforeach
+                                            </select>
+                                        </label>
+                                        <label>Sede
+                                            <select name="sede" required>
+                                                @foreach (['Popayán', 'Santander de Quilichao', 'Puerto Tejada'] as $sede)
+                                                    <option value="{{ $sede }}" @selected($computer->sede === $sede)>{{ $sede }}</option>
+                                                @endforeach
+                                            </select>
+                                        </label>
+                                        <label>Aprendiz responsable
+                                            <select name="aprendiz_id">
+                                                <option value="">Sin asignar</option>
+                                                @foreach ($apprentices as $apprentice)
+                                                    <option value="{{ $apprentice->id }}" @selected($computer->aprendiz_id == $apprentice->id)>
+                                                        {{ $apprentice->nombre }} {{ $apprentice->apellido1 }} {{ $apprentice->apellido2 }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </label>
+                                        <button type="submit" class="primary-button">Actualizar</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('computadores.eliminar', $computer) }}" onsubmit="return confirm('¿Eliminar este computador?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-link">Eliminar</button>
+                                    </form>
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4">Aún no hay computadores registrados.</td></tr>
+                            <tr><td colspan="2">Aún no hay computadores registrados.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Apprentice;
+use App\Models\Computer;
+use App\Models\Offer;
+use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use App\Models\Role;
 use Tests\TestCase;
 
 class AdminSenaPagesTest extends TestCase
@@ -18,12 +21,21 @@ class AdminSenaPagesTest extends TestCase
         $response->assertStatus(200)
             ->assertSee('AdminSena')
             ->assertSee('Cauca');
+
+        $this->get('/dashboard')->assertOk();
     }
 
     public function test_management_pages_are_available(): void
     {
-        $this->get('/computadores')->assertStatus(200);
-        $this->get('/aprendices')->assertStatus(200);
+        $this->get('/computadores')->assertOk()
+            ->assertSee('Aprendiz responsable')
+            ->assertSee('Marca')
+            ->assertSee('ID');
+        $this->get('/aprendices')->assertOk()
+            ->assertSee('Primer apellido')
+            ->assertSee('Segundo apellido')
+            ->assertSee('Número de cédula')
+            ->assertSee('Número de ficha');
         $this->get('/ofertas')->assertStatus(200);
         $this->get('/roles')->assertStatus(200);
         $this->get('/centros')->assertStatus(200);
@@ -31,6 +43,17 @@ class AdminSenaPagesTest extends TestCase
 
     public function test_a_computer_can_be_registered(): void
     {
+        $apprentice = Apprentice::create([
+            'nombre' => 'Camila',
+            'apellido1' => 'Rojas',
+            'apellido2' => 'Pérez',
+            'cedula' => '1000000001',
+            'programa' => 'Desarrollo de software',
+            'ficha' => '2458120',
+            'centro' => 'Popayán',
+            'estado' => 'Activo',
+        ]);
+
         $response = $this->post('/computadores', [
             'codigo' => 'CMP-999',
             'marca' => 'Dell',
@@ -38,16 +61,60 @@ class AdminSenaPagesTest extends TestCase
             'serial' => 'DL-999-01',
             'estado' => 'Operativo',
             'sede' => 'Popayán',
+            'aprendiz_id' => $apprentice->id,
         ]);
 
         $response->assertRedirect('/computadores');
-        $this->assertDatabaseHas('computers', ['codigo' => 'CMP-999']);
+        $this->assertDatabaseHas('computers', [
+            'codigo' => 'CMP-999',
+            'marca' => 'Dell',
+            'aprendiz_id' => $apprentice->id,
+        ]);
+
+        $computer = Computer::where('codigo', 'CMP-999')->firstOrFail();
+        $this->get('/computadores')
+            ->assertSee((string) $computer->id)
+            ->assertSee('Dell')
+            ->assertSee('Camila Rojas Pérez');
+    }
+
+    public function test_a_computer_can_be_registered_without_an_apprentice(): void
+    {
+        $this->post('/computadores', [
+            'codigo' => 'CMP-UNASSIGNED',
+            'marca' => 'Dell',
+            'modelo' => 'Latitude',
+            'serial' => 'DL-UNASSIGNED',
+            'estado' => 'Disponible',
+            'sede' => 'Popayán',
+            'aprendiz_id' => '',
+        ])->assertRedirect('/computadores');
+
+        $this->assertDatabaseHas('computers', [
+            'codigo' => 'CMP-UNASSIGNED',
+            'aprendiz_id' => null,
+        ]);
+
+        $this->from('/computadores')->post('/computadores', [
+            'codigo' => 'CMP-INVALID-OWNER',
+            'marca' => 'Dell',
+            'modelo' => 'Latitude',
+            'serial' => 'DL-INVALID-OWNER',
+            'estado' => 'Disponible',
+            'sede' => 'Popayán',
+            'aprendiz_id' => 999,
+        ])->assertSessionHasErrors('aprendiz_id');
+
+        $this->assertDatabaseMissing('computers', ['codigo' => 'CMP-INVALID-OWNER']);
     }
 
     public function test_an_apprentice_can_be_registered(): void
     {
         $response = $this->post('/aprendices', [
-            'nombre' => 'María López',
+            'nombre' => 'María',
+            'apellido1' => 'López',
+            'apellido2' => 'Gómez',
+            'cedula' => '1000000002',
             'programa' => 'Análisis y Desarrollo de Software',
             'ficha' => '2458120',
             'centro' => 'Popayán',
@@ -55,7 +122,13 @@ class AdminSenaPagesTest extends TestCase
         ]);
 
         $response->assertRedirect('/aprendices');
-        $this->assertDatabaseHas('apprentices', ['ficha' => '2458120']);
+        $this->assertDatabaseHas('apprentices', [
+            'ficha' => '2458120',
+            'nombre' => 'María',
+            'apellido1' => 'López',
+            'apellido2' => 'Gómez',
+            'cedula' => '1000000002',
+        ]);
     }
 
     public function test_an_offer_can_be_registered(): void
@@ -89,6 +162,101 @@ class AdminSenaPagesTest extends TestCase
 
         $response->assertRedirect('/roles');
         $this->assertDatabaseHas('roles', ['id' => $role->id, 'nombre' => 'Instructor líder']);
+    }
+
+    public function test_main_records_can_be_updated_and_deleted(): void
+    {
+        $apprentice = Apprentice::create([
+            'nombre' => 'Laura',
+            'apellido1' => 'Mora',
+            'apellido2' => 'Díaz',
+            'cedula' => '1000000003',
+            'programa' => 'Software',
+            'ficha' => '1001',
+            'centro' => 'Popayán',
+            'estado' => 'Activo',
+        ]);
+        $computer = Computer::create([
+            'codigo' => 'CMP-100',
+            'marca' => 'Dell',
+            'modelo' => 'Latitude',
+            'serial' => 'SER-100',
+            'estado' => 'Operativo',
+            'sede' => 'Popayán',
+            'aprendiz_id' => $apprentice->id,
+        ]);
+        $offer = Offer::create([
+            'nombre' => 'Programa inicial',
+            'modalidad' => 'Presencial',
+            'duracion' => '12 meses',
+            'centro' => 'Popayán',
+        ]);
+        $role = Role::create([
+            'nombre' => 'Consulta',
+            'permisos' => 'Lectura',
+            'usuario' => 'consulta.test',
+            'estado' => 'Activo',
+        ]);
+
+        $this->put('/computadores/'.$computer->id, [
+            'codigo' => 'CMP-100',
+            'marca' => 'Lenovo',
+            'modelo' => 'ThinkPad',
+            'serial' => 'SER-100',
+            'estado' => 'Disponible',
+            'sede' => 'Popayán',
+            'aprendiz_id' => $apprentice->id,
+        ])->assertRedirect('/computadores');
+        $this->assertDatabaseHas('computers', ['id' => $computer->id, 'marca' => 'Lenovo']);
+
+        $this->put('/aprendices/'.$apprentice->id, [
+            'nombre' => 'Laura',
+            'apellido1' => 'Mora',
+            'apellido2' => 'Díaz',
+            'cedula' => '1000000003',
+            'programa' => 'Desarrollo de software',
+            'ficha' => '1001',
+            'centro' => 'Popayán',
+            'estado' => 'Activo',
+        ])->assertRedirect('/aprendices');
+        $this->assertDatabaseHas('apprentices', ['id' => $apprentice->id, 'programa' => 'Desarrollo de software']);
+
+        $this->put('/ofertas/'.$offer->id, [
+            'nombre' => 'Programa actualizado',
+            'modalidad' => 'Virtual',
+            'duracion' => '10 meses',
+            'centro' => 'Popayán',
+        ])->assertRedirect('/ofertas');
+        $this->assertDatabaseHas('offers', ['id' => $offer->id, 'nombre' => 'Programa actualizado']);
+
+        $this->post('/roles', [
+            'nombre' => 'Administrador',
+            'permisos' => 'Gestión total',
+            'usuario' => 'admin.test',
+            'estado' => 'Activo',
+        ])->assertRedirect('/roles');
+        $this->assertDatabaseHas('roles', ['usuario' => 'admin.test']);
+
+        $this->delete('/aprendices/'.$apprentice->id)->assertRedirect('/aprendices');
+        $this->assertDatabaseHas('computers', ['id' => $computer->id, 'aprendiz_id' => null]);
+        $this->put('/computadores/'.$computer->id, [
+            'codigo' => 'CMP-100',
+            'marca' => 'Lenovo',
+            'modelo' => 'ThinkPad',
+            'serial' => 'SER-100',
+            'estado' => 'Disponible',
+            'sede' => 'Popayán',
+            'aprendiz_id' => '',
+        ])->assertRedirect('/computadores');
+
+        $this->delete('/computadores/'.$computer->id)->assertRedirect('/computadores');
+        $this->delete('/ofertas/'.$offer->id)->assertRedirect('/ofertas');
+        $this->delete('/roles/'.$role->id)->assertRedirect('/roles');
+
+        $this->assertDatabaseMissing('computers', ['id' => $computer->id]);
+        $this->assertDatabaseMissing('apprentices', ['id' => $apprentice->id]);
+        $this->assertDatabaseMissing('offers', ['id' => $offer->id]);
+        $this->assertDatabaseMissing('roles', ['id' => $role->id]);
     }
 
     public function test_comments_from_the_admin_api_are_visible(): void
@@ -148,5 +316,4 @@ class AdminSenaPagesTest extends TestCase
                 ->assertSee($title);
         }
     }
-
 }

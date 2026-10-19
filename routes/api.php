@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// Devuelve el usuario autenticado; requiere un token válido de Sanctum.
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

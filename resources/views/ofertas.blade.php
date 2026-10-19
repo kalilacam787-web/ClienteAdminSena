@@ -62,12 +62,32 @@
             <div class="cards-stack">
                 @forelse ($offers as $offer)
                     <article class="mini-card">
-                        <strong>{{ $offer->nombre }}</strong>
-                        <div class="meta-row">
-                            <span>{{ $offer->modalidad }}</span>
-                            <span>{{ $offer->duracion }}</span>
-                        </div>
-                        <small>{{ $offer->centro }}</small>
+                        <form class="entry-form" method="POST" action="{{ route('ofertas.actualizar', $offer) }}">
+                            @csrf
+                            @method('PUT')
+                            <label>Nombre del programa<input name="nombre" value="{{ $offer->nombre }}" required></label>
+                            <label>Modalidad
+                                <select name="modalidad" required>
+                                    @foreach (['Virtual', 'Presencial', 'Mixto', 'Dual', 'Híbrida'] as $modalidad)
+                                        <option value="{{ $modalidad }}" @selected($offer->modalidad === $modalidad)>{{ $modalidad }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label>Duración<input name="duracion" value="{{ $offer->duracion }}" required></label>
+                            <label>Centro
+                                <select name="centro" required>
+                                    @foreach (['Popayán', 'Santander de Quilichao', 'Puerto Tejada'] as $centro)
+                                        <option value="{{ $centro }}" @selected($offer->centro === $centro)>{{ $centro }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <button type="submit" class="primary-button">Actualizar</button>
+                        </form>
+                        <form method="POST" action="{{ route('ofertas.eliminar', $offer) }}" onsubmit="return confirm('¿Eliminar esta oferta?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-link">Eliminar</button>
+                        </form>
                     </article>
                 @empty
                     <p>Aún no hay ofertas registradas.</p>

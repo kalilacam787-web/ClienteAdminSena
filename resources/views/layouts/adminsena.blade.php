@@ -8,6 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="dashboard-body">
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <div class="layout-shell">
         <header class="main-header">
             <div class="brand-box">
@@ -19,42 +20,21 @@
             </div>
 
             <nav class="main-nav" aria-label="Navegación principal">
-                <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Inicio</a>
-                <a href="{{ route('computadores') }}" class="nav-link {{ request()->routeIs('computadores') ? 'active' : '' }}">Computadores</a>
-                <a href="{{ route('aprendices') }}" class="nav-link {{ request()->routeIs('aprendices') ? 'active' : '' }}">Aprendices</a>
-                <a href="{{ route('ofertas') }}" class="nav-link {{ request()->routeIs('ofertas') ? 'active' : '' }}">Ofertas</a>
-                <a href="{{ route('roles') }}" class="nav-link {{ request()->routeIs('roles') ? 'active' : '' }}">Roles</a>
-                <a href="{{ route('centros') }}" class="nav-link {{ request()->routeIs('centros') ? 'active' : '' }}">Centros</a>
-                <a href="{{ route('comentarios') }}" class="nav-link {{ request()->routeIs('comentarios') ? 'active' : '' }}">Comentarios</a>
-                <a href="{{ route('datos-api.show', 'areas') }}" class="nav-link {{ request()->routeIs('datos-api.*') ? 'active' : '' }}">Tablas API</a>
+                <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" @if (request()->routeIs('home')) aria-current="page" @endif>Inicio</a>
+                <a href="{{ route('computadores') }}" class="nav-link {{ request()->routeIs('computadores') ? 'active' : '' }}" @if (request()->routeIs('computadores')) aria-current="page" @endif>Computadores</a>
+                <a href="{{ route('aprendices') }}" class="nav-link {{ request()->routeIs('aprendices') ? 'active' : '' }}" @if (request()->routeIs('aprendices')) aria-current="page" @endif>Aprendices</a>
+                <a href="{{ route('ofertas') }}" class="nav-link {{ request()->routeIs('ofertas') ? 'active' : '' }}" @if (request()->routeIs('ofertas')) aria-current="page" @endif>Ofertas</a>
+                <a href="{{ route('roles') }}" class="nav-link {{ request()->routeIs('roles') ? 'active' : '' }}" @if (request()->routeIs('roles')) aria-current="page" @endif>Roles</a>
+                <a href="{{ route('centros') }}" class="nav-link {{ request()->routeIs('centros') ? 'active' : '' }}" @if (request()->routeIs('centros')) aria-current="page" @endif>Centros</a>
+                <a href="{{ route('comentarios') }}" class="nav-link {{ request()->routeIs('comentarios') ? 'active' : '' }}" @if (request()->routeIs('comentarios')) aria-current="page" @endif>Comentarios</a>
+                <a href="{{ route('datos-api.show', 'areas') }}" class="nav-link {{ request()->routeIs('datos-api.*') ? 'active' : '' }}" @if (request()->routeIs('datos-api.*')) aria-current="page" @endif>Tablas API</a>
             </nav>
 
-            <a href="#" class="header-button">Portal SENA</a>
+            <a href="{{ route('home') }}" class="header-button">Volver al inicio</a>
         </header>
 
         <div class="content-wrapper">
-            <aside class="sidebar">
-                <div class="side-card">
-                    <p class="eyebrow">Acceso rápido</p>
-                    <ul class="side-list">
-                        <li><a href="{{ route('computadores') }}">Registrar computador</a></li>
-                        <li><a href="{{ route('aprendices') }}">Registrar aprendiz</a></li>
-                        <li><a href="{{ route('ofertas') }}">Agregar oferta</a></li>
-                        <li><a href="{{ route('roles') }}">Actualizar roles</a></li>
-                        <li><a href="{{ route('centros') }}">Ubicaciones</a></li>
-                        <li><a href="{{ route('comentarios') }}">Ver comentarios</a></li>
-                        <li><a href="{{ route('datos-api.show', 'areas') }}">Consultar tablas API</a></li>
-                    </ul>
-                </div>
-
-                <div class="side-card warning-card">
-                    <p class="eyebrow">Cauca</p>
-                    <strong>Gestión regional</strong>
-                    <span>Popayán, Santander de Quilichao y Puerto Tejada</span>
-                </div>
-            </aside>
-
-            <main class="page-main">
+            <main class="page-main" id="contenido" tabindex="-1">
                 @yield('content')
             </main>
         </div>

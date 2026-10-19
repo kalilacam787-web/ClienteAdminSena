@@ -8,7 +8,6 @@
             <p class="eyebrow">Ubicación</p>
             <h1>Centros de formación del Cauca</h1>
         </div>
-        <a href="#" class="primary-button">Ver mapa</a>
     </section>
 
     <div class="panel-grid full-width">
@@ -28,6 +27,9 @@
                             <li>{{ $center['telefono'] }}</li>
                             <li>Lat: {{ $center['latitud'] }} / Lon: {{ $center['longitud'] }}</li>
                         </ul>
+                        <a class="text-link" href="https://www.google.com/maps/search/?api=1&query={{ urlencode($center['latitud'].','.$center['longitud']) }}" target="_blank" rel="noopener noreferrer">
+                            Abrir ubicación <span aria-hidden="true">↗</span>
+                        </a>
                     </article>
                 @endforeach
             </div>
